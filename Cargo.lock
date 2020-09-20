@@ -3,7 +3,8 @@
 [[package]]
 name = "alpm-rs"
 version = "0.1.24"
-source = "git+https://github.com/ikubaku/rust-arch.git#8a20fa1e0a10d301b27f609539bddbd24163a06e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85b1769041d4cd4d43dd4bb1d3a020352549ab7be18c51c77be03f500fb6a45b"
 dependencies = [
  "libc",
 ]
