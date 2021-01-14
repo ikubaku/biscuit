@@ -7,9 +7,12 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-getopts = "0.2"
-toml = "0.5"
-alpm-rs = "0.1.24"
-serde = "1.0"
-serde_derive = "1.0"
-chrono = { version = "0.4", features = [ "serde" ] }
+getopts = "0.2.21"
+toml = "0.5.8"
+serde = "1.0.119"
+serde_derive = "1.0.119"
+chrono = { version = "0.4.19", features = [ "serde" ] }
+alpm = "1.1.8"
+
+[features]
+git = ["alpm/git"]

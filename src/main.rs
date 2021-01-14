@@ -1,14 +1,13 @@
 use std::env;
 use std::error::Error;
-use std::process::exit;
 use std::fs::OpenOptions;
-
-use getopts::Options;
-
-use serde_derive::Serialize;
-
-use chrono::{DateTime, Utc};
 use std::io::Write;
+use std::process::exit;
+
+use alpm::Alpm;
+use chrono::{DateTime, Utc};
+use getopts::Options;
+use serde_derive::Serialize;
 
 #[derive(Serialize)]
 struct PackageInfo {
@@ -33,7 +32,7 @@ impl BiscuitSnapshot {
     }
 
     pub fn add_package_info(&mut self, name: &str, version: &str) {
-        self.package_infos.push(PackageInfo{
+        self.package_infos.push(PackageInfo {
             name: name.to_string(),
             version: version.to_string(),
         });
@@ -49,10 +48,14 @@ impl BiscuitSnapshot {
     }
 }
 
-fn write_to_snapshot(snapshot: &mut BiscuitSnapshot, root_path: &str, database_path: &str) -> Result<(), Box<dyn Error>> {
-    let handle = alpm_rs::initialize(root_path, database_path)?;
-    let db = handle.local_db();
-    let packages = db.pkgcache();
+fn write_to_snapshot(
+    snapshot: &mut BiscuitSnapshot,
+    root_path: &str,
+    database_path: &str,
+) -> Result<(), Box<dyn Error>> {
+    let handle = Alpm::new(root_path, database_path)?;
+    let db = handle.localdb();
+    let packages = db.pkgs();
 
     for p in packages {
         snapshot.add_package_info(p.name(), p.version());
@@ -74,9 +77,24 @@ fn main() {
     let mut opts = Options::new();
     opts.optflag("h", "help", "print usage");
     opts.optopt("n", "name", "[Required] the name of the snapshot", "NAME");
-    opts.optopt("o", "output", "the output filename (default = \"NAME.toml\")", "FILE");
-    opts.optopt("r", "root-path", "the absolute path to the system root filesystem (default = \"/\")", "PATH");
-    opts.optopt("d", "db-path", "the absolute path to the ALPM database (default = \"/var/lib/pacman\")", "PATH");
+    opts.optopt(
+        "o",
+        "output",
+        "the output filename (default = \"NAME.toml\")",
+        "FILE",
+    );
+    opts.optopt(
+        "r",
+        "root-path",
+        "the absolute path to the system root filesystem (default = \"/\")",
+        "PATH",
+    );
+    opts.optopt(
+        "d",
+        "db-path",
+        "the absolute path to the ALPM database (default = \"/var/lib/pacman\")",
+        "PATH",
+    );
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -100,21 +118,27 @@ fn main() {
 
     let name = matches.opt_str("n").unwrap();
     let output_filename = matches.opt_str("o").unwrap_or(format!("{}.toml", name));
-    let root_path = matches.opt_str("r").unwrap_or(String::from("/"));
-    let database_path = matches.opt_str("d").unwrap_or(String::from("/var/lib/pacman"));
+    let root_path = matches.opt_str("r");
+    let root_path = root_path.as_deref().unwrap_or("/");
+    let database_path = matches.opt_str("d");
+    let database_path = database_path.as_deref().unwrap_or("/var/lib/pacman");
     let mut snapshot = BiscuitSnapshot::create_with_name(&name);
     match write_to_snapshot(&mut snapshot, &root_path, &database_path) {
-        Ok(_) => {
-            match snapshot.save_to_file(&output_filename) {
-                Ok(_) => exit(0),
-                Err(e) => {
-                    eprintln!("Something went wrong while saving the snapshot to the file: {}", e.to_string());
-                    exit(1);
-                }
+        Ok(_) => match snapshot.save_to_file(&output_filename) {
+            Ok(_) => exit(0),
+            Err(e) => {
+                eprintln!(
+                    "Something went wrong while saving the snapshot to the file: {}",
+                    e.to_string()
+                );
+                exit(1);
             }
         },
         Err(e) => {
-            eprintln!("Something went wrong while reading the ALPM database: {}", e.to_string());
+            eprintln!(
+                "Something went wrong while reading the ALPM database: {}",
+                e.to_string()
+            );
             exit(1);
         }
     }
